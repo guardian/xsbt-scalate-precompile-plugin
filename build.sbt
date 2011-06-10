@@ -8,8 +8,8 @@ organization := "com.zentrope"
 
 version := "1.0"
 
-cleanFiles <<= (cleanFiles, baseDirectory) { 
-  (files, basedir) => 
+cleanFiles <<= (cleanFiles, baseDirectory) {
+  (files, basedir) =>
     files ++ Seq(new File(basedir, "/project/target"))
 }
 
@@ -23,4 +23,3 @@ credentials += Credentials(Path.userHome / ".ivy2" / ".credentials")
 publishTo := Some("Zentrope Repo" at "http://zentrope.com/maven")
 
 resolvers += Resolver.sftp("Zentrope Repo", "zentrope.com", "domains/zentrope.com/maven")
-
