@@ -1,4 +1,4 @@
-# XSBT Scalate Precompile Plugin
+# XSBT Scalate Precompile Plugin 1.2
 
 This XSBT >= 0.10.0 plugin precompiles your Scalate templates for you
 as part of the normal compilation process. The plugin accomplishes
@@ -59,13 +59,13 @@ Create a file called `/project/plugins/build.sbt' and add the following lines:
     )
 
     libraryDependencies ++= Seq (
-        "com.zentrope" %% "xsbt-scalate-precompile-plugin" % "1.0"
+        "com.zentrope" %% "xsbt-scalate-precompile-plugin" % "1.2"
     )
 
 ## Tasks
 
 None! Your Scalate templates are compiled whenever SBT invokes its
-`compiles` task as part of `run` or whatever.
+`compile` task as part of `run` or whatever.
 
 ## Settings
 

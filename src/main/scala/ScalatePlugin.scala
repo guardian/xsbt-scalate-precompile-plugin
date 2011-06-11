@@ -16,31 +16,28 @@ object ScalatePlugin extends Plugin {
   val scalateLoggingConfig = SettingKey[File]("scalate-logging-config",
                                               "Logback config to get rid of that infernal debug output.")
 
-  private def targetFileName(template: File, outputdir: File) =
+  private def scala(template: File, outputdir: File) =
     new File(outputdir, "/%s.scala".format(template.getName.replaceAll("[.]", "_")))
 
-  private def isTemplate(template: File) =
+  private def recognized(template: File) =
     TemplateEngine.templateTypes.filter(template.getName.endsWith(_)).size > 0
 
-  private def needsCompiling(template: File, outputdir: File): Boolean = {
-    // PROBLEM: Doesn't address the fact that dependent objects may have changed. I don't
-    // know if SBT has a hook for this sort of thing. Solution might be to use the
-    // scalate precompiler, and adjust the managedClasspath in the settings declaration
-    // to contain the classDirectory.
-    if (! isTemplate(template))
-      return false
-    val target = targetFileName(template, outputdir)
-    if (! target.exists())
-      return true
-    return template.lastModified > target.lastModified
+  private def updated(template: File, scala: File) =
+    (! scala.exists()) || (template.lastModified > scala.lastModified)
+
+  private def changed(template: File, outputdir: File) =
+    recognized(template) && updated(template, scala(template, outputdir))
+
+  private def code(engine: TemplateEngine, template: File) = {
+    val source = TemplateSource.fromFile(template, template.getName)
+    source.engine = engine
+    source
+    engine.generateScala(source).source
   }
 
   private def generate (engine: TemplateEngine, template: File, outputdir: File, log: Logger) = {
     log.info(" compiling template: " + template)
-    val source = TemplateSource.fromFile(template, template.getName)
-    source.engine = engine
-    val code = engine.generateScala(source)
-    IO.write(targetFileName(template, outputdir), code.source)
+    IO.write(scala(template, outputdir), code(engine, template))
   }
 
   private def scalateLoggingConfigValue: Initialize[File] =
@@ -49,24 +46,29 @@ object ScalatePlugin extends Plugin {
   def scalateTemplateDirectoriesValue: Initialize[Seq[File]] =
     (resourceDirectory in Compile) { (d) => Seq(d) }
 
-  def scalateSourceGeneratorTask: Initialize[Task[Seq[File]]] = (streams,
-                                                                 sourceManaged in Compile,
-                                                                 scalateTemplateDirectories in Compile,
-                                                                 scalateLoggingConfig in Compile) map {
-    (out, outputDir, inputDir, logConfig) => {
-      System.setProperty("logback.configurationFile", logConfig.toString)
+  def scalateSourceGeneratorTask: Initialize[Task[Seq[File]]] =
+    (streams, sourceManaged in Compile, scalateTemplateDirectories in Compile, scalateLoggingConfig in Compile) map {
 
-      val engine = new org.fusesource.scalate.TemplateEngine()
-      engine.packagePrefix = ""
+      (out, outputDir, inputDirs, logConfig) => {
 
-      inputDir.foreach { dir =>
-        dir.listFiles.filter(needsCompiling(_, outputDir)).foreach { template =>
-          generate(engine, template, outputDir, out.log)
+        // If we throw an exception here, it'll break the compile. Which is what
+        // I want.
+
+        System.setProperty("logback.configurationFile", logConfig.toString)
+
+        val engine = new org.fusesource.scalate.TemplateEngine()
+        engine.packagePrefix = ""
+
+        for (dir <- inputDirs)
+          for (template <- dir.listFiles.filter(changed(_, outputDir)))
+            generate(engine, template, outputDir, out.log)
+
+        outputDir.listFiles match {
+          case null => Seq()
+          case (files) => files.toList
         }
       }
-      outputDir.listFiles.toList
     }
-  }
 
   // Overriding settings means these expressions will be automatically interpolated
   // into the project's build.sbt
