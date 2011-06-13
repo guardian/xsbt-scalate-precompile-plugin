@@ -6,7 +6,7 @@ name := "xsbt-scalate-precompile-plugin"
 
 organization := "com.zentrope"
 
-version := "1.2"
+version := "1.3"
 
 cleanFiles <<= (cleanFiles, baseDirectory) {
   (files, basedir) =>

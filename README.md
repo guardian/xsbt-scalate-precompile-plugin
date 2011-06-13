@@ -1,4 +1,4 @@
-# XSBT Scalate Precompile Plugin 1.2
+# XSBT Scalate Precompile Plugin 1.3
 
 This XSBT >= 0.10.0 plugin precompiles your Scalate templates for you
 as part of the normal compilation process. The plugin accomplishes

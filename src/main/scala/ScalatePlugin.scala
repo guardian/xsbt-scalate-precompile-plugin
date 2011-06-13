@@ -60,8 +60,9 @@ object ScalatePlugin extends Plugin {
         engine.packagePrefix = ""
 
         for (dir <- inputDirs)
-          for (template <- dir.listFiles.filter(changed(_, outputDir)))
-            generate(engine, template, outputDir, out.log)
+          if (dir.listFiles != null)
+            for (template <- dir.listFiles.filter(changed(_, outputDir)))
+              generate(engine, template, outputDir, out.log)
 
         outputDir.listFiles match {
           case null => Seq()
