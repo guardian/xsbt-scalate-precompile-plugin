@@ -48,28 +48,28 @@ object ScalatePlugin extends Plugin {
 
   def scalateSourceGeneratorTask: Initialize[Task[Seq[File]]] =
     (streams, sourceManaged in Compile, scalateTemplateDirectories in Compile, scalateLoggingConfig in Compile) map {
-
-      (out, outputDir, inputDirs, logConfig) => {
-
-        // If we throw an exception here, it'll break the compile. Which is what
-        // I want.
-
-        System.setProperty("logback.configurationFile", logConfig.toString)
-
-        val engine = new org.fusesource.scalate.TemplateEngine()
-        engine.packagePrefix = ""
-
-        for (dir <- inputDirs)
-          if (dir.listFiles != null)
-            for (template <- dir.listFiles.filter(changed(_, outputDir)))
-              generate(engine, template, outputDir, out.log)
-
-        outputDir.listFiles match {
-          case null => Seq()
-          case (files) => files.toList
-        }
-      }
+      (out, outputDir, inputDirs, logConfig) => generateScalateSource(out, outputDir, inputDirs, logConfig)
     }
+
+  def generateScalateSource(out : TaskStreams, outputDir : File, inputDirs : Seq[File], logConfig : File) = {
+    // If we throw an exception here, it'll break the compile. Which is what
+    // I want.
+
+    System.setProperty("logback.configurationFile", logConfig.toString)
+
+    val engine = new org.fusesource.scalate.TemplateEngine()
+    engine.packagePrefix = ""
+
+    for (dir <- inputDirs)
+      if (dir.listFiles != null)
+        for (template <- dir.listFiles.filter(changed(_, outputDir)))
+          generate(engine, template, outputDir, out.log)
+
+    outputDir.listFiles match {
+      case null => Seq()
+      case (files) => files.toList
+    }
+  }
 
   // Overriding settings means these expressions will be automatically interpolated
   // into the project's build.sbt
