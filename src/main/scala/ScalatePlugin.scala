@@ -10,12 +10,9 @@ import org.fusesource.scalate.TemplateEngine
 import java.io.File
 
 object ScalatePlugin extends Plugin {
-
-
   val scalateTemplateDirectories = SettingKey[Seq[File]]("scalate-template-directories", "Directories containing template files")
   val scalateFileTypes = SettingKey[FileFilter]("scalate-file-types", "File types processable by Scalate")
   val scalateTemplates = SettingKey[Seq[(File, String)]]("scalate-templates", "Full set of template files to process")
-  val scalateLoggingConfig = SettingKey[File]("scalate-logging-config", "Logback config to get rid of that infernal debug output")
 
   private def scala(uri: String, outputdir: File) = outputdir / (uri + ".scala")
 
@@ -36,16 +33,11 @@ object ScalatePlugin extends Plugin {
     scalaFile
   }
 
-  def scalateSourceGeneratorTask: Initialize[Task[Seq[File]]] =
-    (streams, sourceManaged in Compile, scalateTemplates in Compile, scalateLoggingConfig in Compile) map {
-      (out, outputDir, templates, logConfig) => generateScalateSource(out, outputDir, templates, logConfig)
-    }
+  def scalateSourceGeneratorTask = (streams, sourceManaged in Compile, scalateTemplates in Compile) map generateScalateSource
 
-  def generateScalateSource(out: TaskStreams, outputDir: File, templateMappings: Seq[(File, String)], logConfig : File) = {
+  def generateScalateSource(out: TaskStreams, outputDir: File, templateMappings: Seq[(File, String)]) = {
     // If we throw an exception here, it'll break the compile. Which is what
     // I want.
-    System.setProperty("logback.configurationFile", logConfig.toString)
-
     val engine = new org.fusesource.scalate.TemplateEngine()
     engine.packagePrefix = ""
 
@@ -57,7 +49,6 @@ object ScalatePlugin extends Plugin {
   // into the project's build.sbt
 
   override def settings = Seq (
-    scalateLoggingConfig in Compile <<= (resourceDirectory in Compile) { _ / "logback.xml" },
     scalateFileTypes := TemplateEngine.templateTypes map { t => "*." + t : FileFilter } reduceLeft { _ || _ },
     scalateTemplateDirectories in Compile <<= (resourceDirectory in Compile) { Seq(_) },
     scalateTemplates in Compile <<= (scalateTemplateDirectories in Compile, scalateFileTypes) {
